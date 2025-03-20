@@ -3,6 +3,12 @@
 #import "notification.h"
 
 void showNotification(const char *jsonString) {
+
+	if (![[NSBundle mainBundle] bundleIdentifier]) {
+        NSLog(@"Warning: Cannot show notifications when not running in a proper app bundle.");
+        return;
+    }
+
     NSDictionary *jsonDict = [NSJSONSerialization
                             JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
                                             dataUsingEncoding:NSUTF8StringEncoding]

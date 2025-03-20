@@ -227,7 +227,7 @@ void createAndRunApplication() {
     [a setDelegate:d];
     [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
     _statusItem = [[NSStatusBar systemStatusBar]
-                  statusItemWithLength:NSVariableStatusItemLength];
+                   statusItemWithLength:NSVariableStatusItemLength];
     MenuetMenu *menu = [MenuetMenu new];
     menu.root = true;
     _statusItem.menu = menu;
@@ -241,18 +241,26 @@ void createAndRunApplication() {
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-    // Request notification permissions
+    // Check if we're running in a proper bundle
+    if (![[NSBundle mainBundle] bundleIdentifier]) {
+        NSLog(@"Warning: Not running in a proper app bundle. Notifications will not work properly.");
+        return;
+    }
+
+    // Set up notifications
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
     [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
-                                            UNAuthorizationOptionSound |
-                                            UNAuthorizationOptionBadge)
-                          completionHandler:^(BOOL granted, NSError * _Nullable error) {
-                              // Handle permission response if needed
-                          }];
+                                           UNAuthorizationOptionSound |
+                                           UNAuthorizationOptionBadge)
+                        completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                            if (error) {
+                                NSLog(@"Notification authorization error: %@", error);
+                            }
+                        }];
 }
 
-// Replace the old notification delegate method with this new one
+// Replace these methods
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
        didReceiveNotificationResponse:(UNNotificationResponse *)response
                 withCompletionHandler:(void (^)(void))completionHandler {
@@ -270,11 +278,9 @@ void createAndRunApplication() {
     completionHandler();
 }
 
-// Add this method to handle notifications when app is in foreground
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
-    // Show notification even when app is in foreground
     completionHandler(UNNotificationPresentationOptionList |
                      UNNotificationPresentationOptionBanner |
                      UNNotificationPresentationOptionSound);
