@@ -44,6 +44,16 @@ void showNotification(const char *jsonString) {
         [actions addObject:textAction];
     }
 
+    // Add this code here for close button support
+    NSString *closeButton = jsonDict[@"CloseButton"];
+    if (closeButton.length > 0) {
+        UNNotificationAction *dismissAction = [UNNotificationAction
+                                           actionWithIdentifier:@"DISMISS_ACTION"
+                                           title:closeButton
+                                           options:UNNotificationActionOptionNone];
+        [actions addObject:dismissAction];
+    }
+
     // Create category for actions if needed
     if (actions.count > 0) {
         NSString *categoryId = [NSString stringWithFormat:@"CATEGORY_%@", identifier];

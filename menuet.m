@@ -225,10 +225,6 @@ void createAndRunApplication() {
     NSApplication *a = NSApplication.sharedApplication;
     MenuetAppDelegate *d = [MenuetAppDelegate new];
     [a setDelegate:d];
-
-    // Update this line
-    [UNUserNotificationCenter currentNotificationCenter].delegate = d;
-
     [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
     _statusItem = [[NSStatusBar systemStatusBar]
                   statusItemWithLength:NSVariableStatusItemLength];

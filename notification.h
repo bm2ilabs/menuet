@@ -1,5 +1,8 @@
 #ifndef __NOTIFICATION_H__
 #define __NOTIFICATION_H__
-#endif
+
+#import <UserNotifications/UserNotifications.h>
 
 void showNotification(const char *jsonString);
+
+#endif
