@@ -234,6 +234,27 @@ void createAndRunApplication() {
     [a run];
 }
 
+void requestNotificationPermission(void (*callback)(bool granted, void* data), void* data) {
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+
+    [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
+                                           UNAuthorizationOptionSound |
+                                           UNAuthorizationOptionBadge)
+                        completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                            if (error) {
+                                NSLog(@"Notification authorization error: %@", error);
+                                if (callback) {
+                                    callback(false, data);
+                                }
+                            } else {
+                                NSLog(@"Notification permission %@", granted ? @"granted" : @"denied");
+                                if (callback) {
+                                    callback(granted, data);
+                                }
+                            }
+                        }];
+}
+
 @implementation MenuetAppDelegate
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
@@ -241,22 +262,39 @@ void createAndRunApplication() {
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-    // Check if we're running in a proper bundle
-    if (![[NSBundle mainBundle] bundleIdentifier]) {
-        NSLog(@"Warning: Not running in a proper app bundle. Notifications will not work properly.");
-        return;
+    NSLog(@"Application finished launching, setting up notifications");
+
+    // Check bundle identifier
+    NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
+    NSLog(@"Bundle ID: %@", bundleID ? bundleID : @"Not running in a bundle");
+
+    // Only set up if we have a bundle ID
+    if (!bundleID) {
+        NSLog(@"Warning: Not running in a proper app bundle. Notifications may not work.");
     }
 
-    // Set up notifications
+    // Set up notifications regardless
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
+
     [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
                                            UNAuthorizationOptionSound |
                                            UNAuthorizationOptionBadge)
                         completionHandler:^(BOOL granted, NSError * _Nullable error) {
                             if (error) {
                                 NSLog(@"Notification authorization error: %@", error);
+                            } else if (granted) {
+                                NSLog(@"Notification permission granted");
+                            } else {
+                                NSLog(@"Notification permission denied");
                             }
+
+                            // Check current notification settings
+                            [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+                                NSLog(@"Authorization status: %ld", (long)settings.authorizationStatus);
+                                NSLog(@"Alert setting: %ld", (long)settings.alertSetting);
+                                NSLog(@"Sound setting: %ld", (long)settings.soundSetting);
+                            }];
                         }];
 }
 

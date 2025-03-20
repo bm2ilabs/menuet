@@ -11,6 +11,13 @@ package menuet
 #import "menuet.h"
 #endif
 
+// Declare the callback function that will be implemented in Go
+extern void goNotificationPermissionCallback(bool granted, void* data);
+
+// Bridge function to simplify calling from Go
+static inline void callPermissionCallback(bool granted, void* data) {
+  goNotificationPermissionCallback(granted, data);
+}
 */
 import "C"
 import (
@@ -22,6 +29,11 @@ import (
 	"time"
 	"unsafe"
 )
+
+// PermissionCallback is a function called after notification permission request
+type PermissionCallback func(bool)
+
+var permissionCallbacks = make(map[unsafe.Pointer]PermissionCallback)
 
 // Application represents the OSX application
 type Application struct {
@@ -75,6 +87,26 @@ func (a *Application) RunApplication() {
 		go a.checkForUpdates()
 	}
 	C.createAndRunApplication()
+}
+
+//export goNotificationPermissionCallback
+func goNotificationPermissionCallback(granted C.bool, data unsafe.Pointer) {
+	callback, ok := permissionCallbacks[data]
+	if ok {
+		callback(bool(granted))
+		delete(permissionCallbacks, data)
+	}
+}
+
+// RequestNotificationPermission requests permission to show notifications
+func (a *Application) RequestNotificationPermission(callback PermissionCallback) {
+	callbackPtr := unsafe.Pointer(&callback)
+	permissionCallbacks[callbackPtr] = callback
+
+	// Fix the casting issue by using a helper type
+	C.requestNotificationPermission(
+		(*[0]byte)(C.goNotificationPermissionCallback),
+		callbackPtr)
 }
 
 // SetMenuState changes what is shown in the dropdown

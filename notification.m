@@ -3,11 +3,11 @@
 #import "notification.h"
 
 void showNotification(const char *jsonString) {
+    NSLog(@"Attempting to show notification");
 
-	if (![[NSBundle mainBundle] bundleIdentifier]) {
-        NSLog(@"Warning: Cannot show notifications when not running in a proper app bundle.");
-        return;
-    }
+    // Check bundle identifier
+    NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
+    NSLog(@"Bundle ID: %@", bundleID ? bundleID : @"Not running in a bundle");
 
     NSDictionary *jsonDict = [NSJSONSerialization
                             JSONObjectWithData:[[NSString stringWithUTF8String:jsonString]
@@ -60,6 +60,17 @@ void showNotification(const char *jsonString) {
         [actions addObject:dismissAction];
     }
 
+    // REMOVE THIS SECTION - it was using 'request' before it was defined
+    // [[UNUserNotificationCenter currentNotificationCenter]
+    //    addNotificationRequest:request
+    //    withCompletionHandler:^(NSError * _Nullable error) {
+    //        if (error) {
+    //            NSLog(@"Error showing notification: %@", error);
+    //        } else {
+    //            NSLog(@"Notification request added successfully");
+    //        }
+    //    }];
+
     // Create category for actions if needed
     if (actions.count > 0) {
         NSString *categoryId = [NSString stringWithFormat:@"CATEGORY_%@", identifier];
@@ -90,9 +101,9 @@ void showNotification(const char *jsonString) {
     dispatch_async(dispatch_get_main_queue(), ^{
         [[UNUserNotificationCenter currentNotificationCenter]
             addNotificationRequest:request
-            withCompletionHandler:^(NSError * _Nullable error) {
-                if (error) {
-                    NSLog(@"Error showing notification: %@", error);
+            withCompletionHandler:^(NSError * _Nullable notificationError) {
+                if (notificationError) {
+                    NSLog(@"Error showing notification: %@", notificationError);
                 }
 
                 // Handle removal if needed
