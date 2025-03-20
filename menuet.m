@@ -1,5 +1,5 @@
 #import <Cocoa/Cocoa.h>
-
+#import <UserNotifications/UserNotifications.h>
 #import "NSImage+Resize.h"
 #import "menuet.h"
 
@@ -187,7 +187,7 @@ NSStatusItem *_statusItem;
 
 @end
 
-@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate, NSUserNotificationCenterDelegate>
+@interface MenuetAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate, UNUserNotificationCenterDelegate>
 
 @end
 
@@ -221,34 +221,67 @@ void menuChanged() {
 }
 
 void createAndRunApplication() {
-        [NSAutoreleasePool new];
-        NSApplication *a = NSApplication.sharedApplication;
-        MenuetAppDelegate *d = [MenuetAppDelegate new];
-        [a setDelegate:d];
-        [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:d];
-        [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
-        _statusItem = [[NSStatusBar systemStatusBar]
-                       statusItemWithLength:NSVariableStatusItemLength];
-        MenuetMenu *menu = [MenuetMenu new];
-        menu.root = true;
-        _statusItem.menu = menu;
-        [a run];
+    [NSAutoreleasePool new];
+    NSApplication *a = NSApplication.sharedApplication;
+    MenuetAppDelegate *d = [MenuetAppDelegate new];
+    [a setDelegate:d];
+
+    // Update this line
+    [UNUserNotificationCenter currentNotificationCenter].delegate = d;
+
+    [a setActivationPolicy:NSApplicationActivationPolicyAccessory];
+    _statusItem = [[NSStatusBar systemStatusBar]
+                  statusItemWithLength:NSVariableStatusItemLength];
+    MenuetMenu *menu = [MenuetMenu new];
+    menu.root = true;
+    _statusItem.menu = menu;
+    [a run];
 }
 
 @implementation MenuetAppDelegate
 
-- (NSApplicationTerminateReply)applicationShouldTerminate:
-        (NSApplication *)sender {
-        return NSTerminateNow;
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
+    return NSTerminateNow;
 }
 
-- (void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification {
-        if (notification.activationType == NSUserNotificationActivationTypeReplied) {
-                NSString* userResponse = notification.response.string;
-                notificationRespond(notification.identifier.UTF8String, userResponse.UTF8String);
-	} else {
-                notificationRespond(notification.identifier.UTF8String, @"".UTF8String);
-	}
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    // Request notification permissions
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;
+    [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
+                                            UNAuthorizationOptionSound |
+                                            UNAuthorizationOptionBadge)
+                          completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                              // Handle permission response if needed
+                          }];
+}
+
+// Replace the old notification delegate method with this new one
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       didReceiveNotificationResponse:(UNNotificationResponse *)response
+                withCompletionHandler:(void (^)(void))completionHandler {
+
+    NSString *identifier = response.notification.request.identifier;
+
+    if ([response isKindOfClass:[UNTextInputNotificationResponse class]]) {
+        UNTextInputNotificationResponse *textResponse = (UNTextInputNotificationResponse *)response;
+        NSString *userResponse = textResponse.userText;
+        notificationRespond(identifier.UTF8String, userResponse.UTF8String);
+    } else {
+        notificationRespond(identifier.UTF8String, @"".UTF8String);
+    }
+
+    completionHandler();
+}
+
+// Add this method to handle notifications when app is in foreground
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+    // Show notification even when app is in foreground
+    completionHandler(UNNotificationPresentationOptionList |
+                     UNNotificationPresentationOptionBanner |
+                     UNNotificationPresentationOptionSound);
 }
 
 @end
